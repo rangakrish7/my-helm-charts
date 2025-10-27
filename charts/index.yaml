@@ -3,12 +3,12 @@ entries:
   helix-app:
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-10-27T09:09:16.486567107Z"
+    created: "2025-10-27T09:29:40.314954106Z"
     description: A Helm chart for deploying Helix application
     digest: 2f1379fc1a8729a476aaff873382c58bc924db9456c4331bc3f3fa4fdfb72ee0
     name: helix-app
     type: application
     urls:
-    - https://rangaswamy.github.io/my-helm-charts/charts/helix-app-0.1.0.tgz
+    - https://rangakrish7.github.io/my-helm-charts/charts/helix-app-0.1.0.tgz
     version: 0.1.0
-generated: "2025-10-27T09:09:16.485497207Z"
+generated: "2025-10-27T09:29:40.313491281Z"
