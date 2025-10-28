@@ -8,16 +8,14 @@ spec:
   containers:
     - name: docker
       image: docker:20.10.24
-      command:
-        - cat
+      command: ["cat"]
       tty: true
       volumeMounts:
         - name: docker-socket
           mountPath: /var/run/docker.sock
     - name: helm-kubectl
       image: alpine/helm:3.13.2
-      command:
-        - cat
+      command: ["cat"]
       tty: true
       volumeMounts:
         - name: kube-config
@@ -48,7 +46,6 @@ spec:
             steps {
                 container('docker') {
                     sh '''
-                    echo "Building Docker image..."
                     docker build -t $IMAGE .
                     docker login -u $DOCKER_USER -p $DOCKER_PASS
                     docker push $IMAGE
@@ -60,7 +57,6 @@ spec:
             steps {
                 container('helm-kubectl') {
                     sh '''
-                    echo "Deploying Helm release..."
                     helm upgrade --install $RELEASE $CHART_PATH --namespace $NAMESPACE
                     helm history $RELEASE --namespace $NAMESPACE > helm-history.log
                     helm get values $RELEASE --namespace $NAMESPACE > helm-values.log
@@ -83,7 +79,9 @@ spec:
     }
     post {
         always {
-            archiveArtifacts artifacts: '*.log', fingerprint: true
+            container('helm-kubectl') {
+                archiveArtifacts artifacts: '*.log', fingerprint: true
+            }
         }
     }
 }
