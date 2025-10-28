@@ -1,12 +1,10 @@
 pipeline {
-    agent {
-        docker {
-            image 'maven:3.9.6-eclipse-temurin-17' // Maven + JDK
-            args '-v /root/.m2:/root/.m2' // Cache Maven dependencies
-        }
+    agent any
+    tools {
+        maven 'Maven-3.9.6' // Configure in Jenkins Global Tool Configuration
     }
     environment {
-        KUBECONFIG = credentials('kubeconfig-id') // Jenkins credential for Kubernetes cluster
+        KUBECONFIG = credentials('kubeconfig-cred')
     }
     stages {
         stage('Checkout') {
@@ -27,24 +25,13 @@ pipeline {
         stage('Deploy with Helm') {
             steps {
                 sh '''
-                # Add Helm repo
-                helm repo add my-helm-charts https://github.com/rangakrish7/my-helm-charts.git
+                helm repo add my-helm-charts https://charts.example.com
                 helm repo update
-
-                # Deploy using Helm
                 helm upgrade --install my-app my-helm-charts/my-chart \
                   --namespace my-namespace \
                   --values values-${env.BRANCH_NAME}.yaml
                 '''
             }
-        }
-    }
-    post {
-        success {
-            echo "✅ Deployment successful!"
-        }
-        failure {
-            echo "❌ Pipeline failed!"
         }
     }
 }
