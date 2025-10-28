@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        KUBECONFIG = credentials('kubeconfig-cred') // Jenkins credential for Kubernetes cluster
+        KUBECONFIG = credentials('kubeconfig-cred')
     }
     stages {
         stage('Checkout') {
@@ -12,17 +12,14 @@ pipeline {
         stage('Deploy with Helm') {
             steps {
                 sh '''
-                # Add Helm repo (replace with your actual chart repo URL)
-                helm repo add my-helm-charts https://rangakrish7.github.io/my-helm-charts/
-                helm repo update
+                # Navigate to chart directory
+                cd helix-test/hello-world-chart/helm-charts-main/charts/jenkins
 
-                # Deploy using Helm (replace chart name and namespace)
-              
-helm upgrade --install my-app my-helm-charts/hello-world-chart \
-  --namespace default \
-  --values values.yaml
-''
-
+                # Deploy using Helm
+                helm upgrade --install my-app . \
+                  --namespace default \
+                  --values values.yaml
+                '''
             }
         }
     }
