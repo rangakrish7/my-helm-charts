@@ -1,10 +1,7 @@
 pipeline {
     agent any
-    tools {
-        maven 'Maven-3.9.6' // Configure in Jenkins Global Tool Configuration
-    }
     environment {
-        KUBECONFIG = credentials('kubeconfig-cred')
+        KUBECONFIG = credentials('kubeconfig-cred') // Jenkins credential for Kubernetes cluster
     }
     stages {
         stage('Checkout') {
@@ -12,26 +9,27 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Build') {
-            steps {
-                sh 'mvn clean package'
-            }
-        }
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
-        }
         stage('Deploy with Helm') {
             steps {
                 sh '''
-                helm repo add my-helm-charts https://charts.example.com
+                # Add Helm repo (replace with your actual chart repo URL)
+                helm repo add my-helm-charts https://github.com/rangakrish7/my-helm-charts.git
                 helm repo update
+
+                # Deploy using Helm (replace chart name and namespace)
                 helm upgrade --install my-app my-helm-charts/my-chart \
                   --namespace my-namespace \
                   --values values-${env.BRANCH_NAME}.yaml
                 '''
             }
+        }
+    }
+    post {
+        success {
+            echo "✅ Helm deployment successful!"
+        }
+        failure {
+            echo "❌ Helm deployment failed!"
         }
     }
 }
