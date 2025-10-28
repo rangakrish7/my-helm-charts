@@ -31,15 +31,11 @@ spec:
         }
     }
 
-    parameters {
-        string(name: 'IMAGE', defaultValue: 'rangakrish/helix:latest', description: 'Docker image name')
-        string(name: 'RELEASE', defaultValue: 'my-release', description: 'Helm release name')
-        string(name: 'NAMESPACE', defaultValue: 'default', description: 'Kubernetes namespace')
-        string(name: 'CHART_PATH', defaultValue: './my-helm-charts/helix-test/hello-world-chart', description: 'Path to Helm chart')
-    }
-
     environment {
-        KUBECONFIG = '/root/.kube/config'
+        IMAGE = "rangakrish/helix:latest"
+        RELEASE = "my-release"
+        NAMESPACE = "default"
+        CHART_PATH = "./my-helm-charts/helix-test/hello-world-chart"
     }
 
     stages {
@@ -96,19 +92,16 @@ spec:
                 archiveArtifacts artifacts: '**/*.log', fingerprint: true
             }
         }
-    }
 
-    post {
-        failure {
-            container('helm-kubectl') {
-                echo "Deployment failed! Rolling back Helm release..."
-                sh '''
-                helm rollback $RELEASE
-                '''
+        stage('Rollback on Failure') {
+            when {
+                expression { currentBuild.result == 'FAILURE' }
             }
-        }
-        success {
-            echo "Deployment successful!"
+            steps {
+                container('helm-kubectl') {
+                    sh "helm rollback $RELEASE"
+                }
+            }
         }
     }
 }
