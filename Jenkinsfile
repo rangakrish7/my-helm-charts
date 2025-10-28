@@ -30,34 +30,47 @@ spec:
 """
         }
     }
-    environment {
-        NAMESPACE = "default"
-        RELEASE = "my-release"
-        CHART_PATH = "./my-helm-charts/helix-test/hello-world-chart"
-        IMAGE = "rangakrish/helix:latest"
+
+    parameters {
+        string(name: 'IMAGE', defaultValue: 'rangakrish/helix:latest', description: 'Docker image name')
+        string(name: 'RELEASE', defaultValue: 'my-release', description: 'Helm release name')
+        string(name: 'NAMESPACE', defaultValue: 'default', description: 'Kubernetes namespace')
+        string(name: 'CHART_PATH', defaultValue: './my-helm-charts/helix-test/hello-world-chart', description: 'Path to Helm chart')
     }
+
+    environment {
+        KUBECONFIG = '/root/.kube/config'
+    }
+
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
+
         stage('Build & Push Docker Image') {
             steps {
                 container('docker') {
-                    sh '''
-                    docker build -t $IMAGE .
-                    docker login -u $DOCKER_USER -p $DOCKER_PASS
-                    docker push $IMAGE
-                    '''
+                    withCredentials([usernamePassword(credentialsId: 'docker-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                        docker build -t $IMAGE .
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $IMAGE
+                        '''
+                    }
                 }
             }
         }
+
         stage('Deploy with Helm') {
             steps {
                 container('helm-kubectl') {
                     sh '''
-                    helm upgrade --install $RELEASE $CHART_PATH --namespace $NAMESPACE
+                    helm upgrade --install $RELEASE $CHART_PATH \
+                      --set image.repository=${IMAGE%:*} \
+                      --set image.tag=${IMAGE##*:} \
+                      --namespace $NAMESPACE
                     helm history $RELEASE --namespace $NAMESPACE > helm-history.log
                     helm get values $RELEASE --namespace $NAMESPACE > helm-values.log
                     kubectl get pods --namespace $NAMESPACE > pods.log
@@ -66,6 +79,7 @@ spec:
                 }
             }
         }
+
         stage('Capture Pod Logs') {
             steps {
                 container('helm-kubectl') {
@@ -77,11 +91,23 @@ spec:
             }
         }
     }
+
     post {
         always {
             container('helm-kubectl') {
-                archiveArtifacts artifacts: '*.log', fingerprint: true
+                archiveArtifacts artifacts: '**/*.log', fingerprint: true
             }
+        }
+        failure {
+            container('helm-kubectl') {
+                echo "Deployment failed! Rolling back Helm release..."
+                sh '''
+                helm rollback $RELEASE
+                '''
+            }
+        }
+        success {
+            echo "Deployment successful!"
         }
     }
 }
