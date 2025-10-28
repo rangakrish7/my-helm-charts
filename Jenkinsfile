@@ -90,14 +90,15 @@ spec:
                 }
             }
         }
-    }
 
-    post {
-        always {
-            container('helm-kubectl') {
+        stage('Archive Logs') {
+            steps {
                 archiveArtifacts artifacts: '**/*.log', fingerprint: true
             }
         }
+    }
+
+    post {
         failure {
             container('helm-kubectl') {
                 echo "Deployment failed! Rolling back Helm release..."
